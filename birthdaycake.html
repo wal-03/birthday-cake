@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Birthday Cake and Candles</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1e293b; 
+        }
+
+        .candle-base {
+            position: relative;
+            width: 16px;
+            height: 60px;
+            background: repeating-linear-gradient(
+                45deg,
+                #fef08a,
+                #fef08a 4px,
+                #fcd34d 4px,
+                #fcd34d 8px
+            );
+            border-radius: 4px;
+            margin-bottom: 5px;
+            transform-origin: bottom;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s;
+        }
+
+        .candle-base:hover {
+            transform: scale(1.05);
+        }
+
+        .flame {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 25px;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            background-color: #ffcc00; /* Yellow */
+            box-shadow: 0 0 10px 5px rgba(255, 165, 0, 0.7);
+            filter: blur(1px);
+            opacity: 1; /* Default to lit */
+            transition: opacity 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            pointer-events: none;
+        }
+        
+        .flame::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 5px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ff6600; /* Orange core */
+            filter: blur(0.5px);
+        }
+
+        .candle-wrapper.blown-out .flame {
+            opacity: 0;
+            box-shadow: none;
+        }
+
+        .cake-layer {
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.5);
+            width: 100%;
+        }
+
+        .candle-placement {
+            display: flex;
+            /* Ensure perfect horizontal centering */
+            justify-content: center; 
+            width: 100%; /* Use 100% width of the parent for reliable centering */
+            margin: 0 auto;
+        }
+
+        /* Custom style for the birthday card to handle initial visibility and fade-in */
+        #birthday-card {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        #birthday-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Increased bottom margin (mb-20) to push the title higher and prevent clashing with the flame. -->
+    <h1 id="main-title" class="text-3xl font-bold text-white mb-20 text-center transition-colors duration-500">
+        Happy Birthday!
+    </h1>
+
+    <!-- CAKE AND CANDLE CONTAINER (INITIAL STATE) -->
+    <div id="cake-container" 
+         class="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto transition-all duration-700 ease-in-out cursor-pointer"
+         onclick="handleCandleClick()">
+        
+        <!-- Cake Board (Bottom Plate) -->
+        <div class="h-4 bg-gray-600 rounded-b-lg mb-2 shadow-xl"></div>
+
+        <!-- Candle Area -->
+        <div class="relative z-20 top-[0px] w-full">
+            <div id="candles-container" class="candle-placement absolute top-[-70px]">
+                <!-- Single, centered candle -->
+                <div class="candle-wrapper">
+                    <div class="candle-base"></div>
+                    <div class="flame"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cake Layers -->
+        <div class="cake-layer bg-pink-400 h-8 rounded-t-xl border-t-8 border-pink-300 relative z-10 mt-[10px]">
+             <!-- Sprinkles effect using absolute positioned divs -->
+            <div class="absolute w-1 h-1 bg-yellow-300 rounded-full top-2 left-5 rotate-12"></div>
+            <div class="absolute w-1 h-1 bg-blue-300 rounded-full top-4 right-10 -rotate-6"></div>
+            <div class="absolute w-1 h-1 bg-green-300 rounded-full top-3 left-1/2 rotate-45"></div>
+            <div class="absolute w-1 h-1 bg-red-400 rounded-full top-5 left-20 -rotate-30"></div>
+            <div class="absolute w-1 h-1 bg-yellow-300 rounded-full top-1 right-20 rotate-75"></div>
+        </div>
+        <div class="cake-layer bg-red-600 h-16 relative z-0"></div>
+        <div class="cake-layer bg-red-800 h-6 rounded-b-xl relative z-0"></div>
+    </div>
+    
+    <p id="instruction-text" class="mt-12 text-gray-400 text-center text-sm transition-opacity duration-500">
+        Click the cake or the candle to make a wish and blow it out!
+    </p>
+
+    <!-- BIRTHDAY CARD CONTAINER (INITIALLY HIDDEN) -->
+    <div id="birthday-card" class="hidden w-full max-w-sm md:max-w-lg bg-white p-8 rounded-xl shadow-2xl text-center transition-all duration-700">
+        <h2 class="text-4xl font-extrabold text-pink-600 mb-4 tracking-tight">Happy Birthday!</h2>
+        <p class="text-gray-700 text-lg mb-6 leading-relaxed">
+            May your day be filled with joy, laughter, and everything sweet.
+            Wishing you the very best year ahead!
+        </p>
+        <p class="text-sm text-gray-500 italic">- A </p>
+    </div>
+
+    <script>
+        let isWishMade = false;
+
+        /**
+         * Handles the single-click event that triggers the blow-out action and card appearance.
+         */
+        function handleCandleClick() {
+            // Stop if the action has already been triggered
+            if (isWishMade) {
+                return;
+            }
+            isWishMade = true;
+
+            const candle = document.querySelector('.candle-wrapper'); // Only one candle now
+            const cakeContainer = document.getElementById('cake-container');
+            const birthdayCard = document.getElementById('birthday-card');
+            const mainTitle = document.getElementById('main-title');
+            const instructionText = document.getElementById('instruction-text');
+
+            // 1. Blow out the single candle
+            candle.classList.add('blown-out');
+
+            // 2. Remove click handler from cake container once blown out
+            cakeContainer.onclick = null;
+
+            // 3. Update the main title and instruction text
+            mainTitle.textContent = "Make a wish!";
+            mainTitle.classList.add('text-yellow-300');
+            mainTitle.classList.remove('text-white');
+            instructionText.classList.add('opacity-0');
+
+
+            // 4. Transition the Cake Out (Fade and shrink)
+            cakeContainer.classList.add('opacity-0', 'scale-90');
+            
+            // 5. Show the Card (after the cake fades out)
+            setTimeout(() => {
+                // Hide the cake completely from layout flow
+                cakeContainer.classList.add('hidden');
+                
+                // Update title for the card view
+                mainTitle.textContent = "Your Birthday Card!";
+
+                // Show and animate the card
+                birthdayCard.classList.remove('hidden');
+                setTimeout(() => {
+                    birthdayCard.classList.add('visible');
+                }, 100); // Small delay to allow the 'hidden' removal to register
+
+            }, 2000); // Matches the cake transition duration
+        }
+    </script>
+</body>
+</html>
